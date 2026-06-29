@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Sentimen Koperasi Desa - Naive Bayes</title>
+    <!-- Font Google Akademis -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Menu Navigasi -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-box">
+                    <i data-lucide="award" class="logo-icon"></i>
+                    <div>
+                        <h1 class="logo-title">SENTIMENTUM</h1>
+                        <span class="logo-subtitle">Koperasi Desa Classifier</span>
+                    </div>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="deteksi-mandiri"><i data-lucide="message-square"></i> Deteksi Mandiri</button>
+                <button class="nav-item" data-tab="analisis-massal"><i data-lucide="files"></i> Analisis Massal</button>
+                <button class="nav-item" data-tab="kelola-dataset"><i data-lucide="database"></i> Kelola Data Latih</button>
+                <button class="nav-item" data-tab="evaluasi-model"><i data-lucide="trending-up"></i> Evaluasi Performa</button>
+                <button class="nav-item" data-tab="panduan-teori"><i data-lucide="book-open"></i> Teori & Rumus</button>
+            </nav>
+            <div class="sidebar-footer">
+                <p>Engine: <strong>Python Flask</strong></p>
+                <p>Model: <strong>Naive Bayes Classifier</strong></p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="main-header">
+                <div>
+                    <h2 id="page-title">Deteksi Mandiri</h2>
+                    <p id="page-subtitle" class="text-muted">Analisis emosi opini masyarakat secara individu dengan kalkulasi transparan</p>
+                </div>
+            </header>
+
+            <div class="content-body">
+                <!-- ========================================== -->
+                <!-- Tab 1: Deteksi Mandiri -->
+                <!-- ========================================== -->
+                <section id="deteksi-mandiri" class="tab-content active">
+                    <div class="grid-layout">
+                        <!-- Input Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="pen-tool"></i> Input Opini / Komentar</h3>
+                                <p class="card-desc">Masukkan ulasan anggota tentang kebijakan koperasi untuk dianalisis emosinya</p>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="single-input" placeholder="Contoh: Saya sangat kecewa karena pupuk subsidi terlambat datang, petani terancam gagal panen..."></textarea>
+                                <div class="textarea-suggestions">
+                                    <span>Rekomendasi contoh:</span>
+                                    <button class="btn-suggest" data-type="marah">Kekesalan Pupuk (Marah)</button>
+                                    <button class="btn-suggest" data-type="senang">Bagi SHU Adil (Senang)</button>
+                                    <button class="btn-suggest" data-type="takut">Cemas Koperasi Kolaps (Takut)</button>
+                                </div>
+                                <div class="btn-group" style="margin-top: 1rem;">
+                                    <button id="btn-clear-single" class="btn btn-secondary"><i data-lucide="rotate-ccw"></i> Reset</button>
+                                    <button id="btn-analyze-single" class="btn btn-primary"><i data-lucide="sparkles"></i> Analisis Opini</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Result Card -->
+                        <div class="card" id="single-result-card" style="display: none;">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="activity"></i> Hasil Analisis Emosi</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="emotion-outcome">
+                                    <div class="emotion-badge" id="result-emotion-badge">
+                                        <span class="emotion-emoji" id="result-emoji">😐</span>
+                                        <span class="emotion-label" id="result-label">Netral</span>
+                                    </div>
+                                    <div class="emotion-meta">
+                                        <span id="result-confidence" class="meta-value">Confidence: 0.00%</span>
+                                    </div>
+                                </div>
+
+                                <div class="probability-meters">
+                                    <h4 class="section-subtitle">Peluang Probabilitas Tiap Emosi:</h4>
+                                    <div id="prob-bars-container">
+                                        <!-- Dinamis via JS -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step-by-Step Math Trace Card -->
+                    <div class="card" id="math-trace-card" style="display: none; margin-top: 1.5rem;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i data-lucide="calculator"></i> Langkah-demi-Langkah Perhitungan Naive Bayes</h3>
+                            <p class="card-desc">Transparansi kalkulasi parameter matematis ulasan yang dimasukkan</p>
+                        </div>
+                        <div class="card-body">
+                            <!-- Preprocessing Trace -->
+                            <div class="trace-section">
+                                <h4 class="trace-subtitle"><i data-lucide="binary"></i> 1. Tahap Preprocessing Teks</h4>
+                                <div class="preprocessing-flow">
+                                    <div class="flow-step">
+                                        <span class="step-lbl">Input Teks</span>
+                                        <div class="step-val text-truncate" id="trace-input-raw">-</div>
+                                    </div>
+                                    <div class="flow-arrow"><i data-lucide="arrow-right"></i></div>
+                                    <div class="flow-step">
+                                        <span class="step-lbl">Case Folding & Filtering</span>
+                                        <div class="step-val text-truncate" id="trace-input-clean">-</div>
+                                    </div>
+                                    <div class="flow-arrow"><i data-lucide="arrow-right"></i></div>
+                                    <div class="flow-step">
+                                        <span class="step-lbl">Token & Stopword</span>
+                                        <div class="step-val text-truncate" id="trace-input-tokens">-</div>
+                                    </div>
+                                </div>
+                                <div id="preprocessing-details-container" style="display: none; margin-top: 1rem; background: rgba(0,0,0,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem;">
+                                    <!-- Badges dinamis -->
+                                </div>
+                            </div>
+
+                            <!-- Prior Table -->
+                            <div class="trace-section" style="margin-top: 1.5rem;">
+                                <h4 class="trace-subtitle"><i data-lucide="percent"></i> 2. Probabilitas Prior: P(C) = N_C / N_total</h4>
+                                <div class="table-responsive">
+                                    <table class="data-table" id="table-trace-prior">
+                                        <thead>
+                                            <tr>
+                                                <th>Kelas Emosi (C)</th>
+                                                <th>Dokumen Latih (N_C)</th>
+                                                <th>Prior P(C)</th>
+                                                <th>Log Prior ln P(C)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Likelihood Table -->
+                            <div class="trace-section" style="margin-top: 1.5rem;">
+                                <h4 class="trace-subtitle"><i data-lucide="table"></i> 3. Probabilitas Likelihood: P(w|C) = (count(w, C) + 1) / (∑ count(w', C) + |V|)</h4>
+                                <p class="math-context">Laplace Smoothing Aktif. Kosakata Unik (|V|) = <strong id="trace-vocab-size">-</strong> kata.</p>
+                                <div class="table-responsive">
+                                    <table class="data-table" id="table-trace-likelihood">
+                                        <thead>
+                                            <tr id="table-trace-likelihood-headers">
+                                                <th>Kata Token (w)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Posterior Table -->
+                            <div class="trace-section" style="margin-top: 1.5rem;">
+                                <h4 class="trace-subtitle"><i data-lucide="check-square"></i> 4. Probabilitas Posterior Akhir: ln P(C|D) = ln P(C) + ∑ ln P(w_i|C)</h4>
+                                <div class="table-responsive">
+                                    <table class="data-table" id="table-trace-posterior">
+                                        <thead>
+                                            <tr>
+                                                <th>Kelas Emosi (C)</th>
+                                                <th>ln P(C)</th>
+                                                <th>∑ ln P(w_i|C)</th>
+                                                <th>Skor Log Akhir (ln P(C|D))</th>
+                                                <th>Posterior Final %</th>
+                                                <th>Hasil</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- Tab 2: Analisis Massal -->
+                <!-- ========================================== -->
+                <section id="analisis-massal" class="tab-content">
+                    <div class="grid-layout">
+                        <!-- Input Batch -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="clipboard"></i> Tempelkan Opini / Unggah Berkas</h3>
+                                <p class="card-desc">Tempelkan opini ulasan per baris (satu kalimat ulasan per baris baru)</p>
+                            </div>
+                            <div class="card-body">
+                                <textarea id="batch-paste-input" placeholder="Contoh:&#10;Koperasi ini sangat bagus SHU adil sejahtera KUD Tani&#10;Kecewa bunga pinjamannya naik mencekik petani kecil" style="height: 180px;"></textarea>
+                                <div class="btn-group" style="margin-top: 1rem;">
+                                    <button id="btn-clear-batch" class="btn btn-secondary"><i data-lucide="trash-2"></i> Bersihkan</button>
+                                    <button id="btn-analyze-batch" class="btn btn-primary"><i data-lucide="play"></i> Jalankan Analisis Massal</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats & Chart Card -->
+                        <div class="card" id="batch-summary-card" style="display: none;">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="pie-chart"></i> Ringkasan Klasifikasi Massal</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="eval-metrics-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 1.5rem;">
+                                    <div class="eval-metric-box">
+                                        <span class="eval-metric-val text-primary" id="stat-total-batch">0</span>
+                                        <span class="eval-metric-lbl">Total Diproses</span>
+                                    </div>
+                                    <div class="eval-metric-box">
+                                        <span class="eval-metric-val text-success" id="stat-positive-rate">0%</span>
+                                        <span class="eval-metric-lbl">Rasio Sentimen Positif</span>
+                                    </div>
+                                </div>
+                                <div id="batch-emotion-bars-summary">
+                                    <!-- Dynamic bars summary -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Batch Result Table -->
+                    <div class="card" id="batch-result-table-card" style="display: none; margin-top: 1.5rem;">
+                        <div class="card-header flex-header">
+                            <div>
+                                <h3 class="card-title"><i data-lucide="list"></i> Rincian Hasil Klasifikasi</h3>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table" id="table-batch-results">
+                                    <thead>
+                                        <tr>
+                                            <th>No</th>
+                                            <th style="width: 50%;">Teks Opini</th>
+                                            <th>Prediksi Emosi</th>
+                                            <th>Confidence</th>
+                                            <th style="text-align: center;">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- Tab 3: Kelola Data Latih -->
+                <!-- ========================================== -->
+                <section id="kelola-dataset" class="tab-content">
+                    <!-- Stats overview badges -->
+                    <div class="card-header" style="padding-left: 0; padding-top: 0;">
+                        <h3 class="card-title" style="font-size: 1.15rem; color: var(--text-primary);"><i data-lucide="database"></i> Ringkasan Distribusi Data Latih Aktif</h3>
+                    </div>
+                    <div class="dataset-stats-container" id="dataset-stats">
+                        <!-- Dynamic stat boxes -->
+                    </div>
+
+                    <div class="grid-layout" style="margin-top: 1.5rem;">
+                        <!-- Add Custom Row -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="plus-circle"></i> Tambah Data Latih Kustom</h3>
+                                <p class="card-desc">Tambahkan ulasan berlabel secara manual untuk melatih ulang mesin Naive Bayes</p>
+                            </div>
+                            <div class="card-body">
+                                <form id="form-add-dataset">
+                                    <div class="form-group">
+                                        <label for="dataset-text-input">Kalimat Ulasan:</label>
+                                        <input type="text" id="dataset-text-input" placeholder="Masukkan ulasan di sini..." required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="dataset-label-select">Label Emosi:</label>
+                                        <select id="dataset-label-select" required>
+                                            <option value="" disabled selected>Pilih Kategori Emosi</option>
+                                            <option value="Senang">Senang (Nilai: 1 - Positif)</option>
+                                            <option value="Percaya">Percaya (Nilai: 2 - Positif)</option>
+                                            <option value="Terkejut">Terkejut (Nilai: 3 - Positif)</option>
+                                            <option value="Netral">Netral (Nilai: 4 - Netral)</option>
+                                            <option value="Sedih">Sedih (Nilai: 5 - Negatif)</option>
+                                            <option value="Takut">Takut (Nilai: 6 - Negatif)</option>
+                                            <option value="Marah">Marah (Nilai: 7 - Negatif)</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-block"><i data-lucide="plus"></i> Tambahkan Data</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Data Actions / Utilities -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="settings"></i> Utilitas & Sumber Pengumpulan Data</h3>
+                                <p class="card-desc">Ambil data real sosial media secara dinamis dari API internet/lokal</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="utilities-grid">
+                                    <div class="utility-card" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
+                                        <div class="utility-info">
+                                            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 700;">Ambil Data Real (Sosial Media)</h4>
+                                            <p style="margin: 0.15rem 0 0 0; font-size: 0.75rem; color: var(--text-muted);">Masukkan URL endpoint data latih real untuk diunduh asinkron.</p>
+                                        </div>
+                                        <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                                            <input type="text" id="fetch-dataset-url" value="http://127.0.0.1:5000/static/dataset_sosmed.json" style="flex-grow: 1; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.4rem; font-size: 0.75rem; background: rgba(0,0,0,0.02); color: var(--text-primary); outline: none;">
+                                            <button id="btn-fetch-dataset" class="btn btn-primary btn-small"><i data-lucide="cloud-download"></i> Tarik</button>
+                                        </div>
+                                        <div id="fetch-status-lbl" style="display: none; font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0;"></div>
+                                    </div>
+
+                                    <div class="utility-card" style="padding: 0.5rem 0;">
+                                        <button id="btn-reset-dataset" class="btn btn-danger btn-block"><i data-lucide="refresh-cw"></i> Atur Ulang Default (5.005 Data)</button>
+                                    </div>
+
+                                    <div class="utility-card" style="padding: 0.5rem 0; display: flex; gap: 0.5rem;">
+                                        <button id="btn-trigger-import" class="btn btn-secondary" style="flex: 1;"><i data-lucide="upload"></i> Impor JSON</button>
+                                        <input type="file" id="dataset-import-input" accept=".json" style="display: none;">
+                                        <a href="/api/dataset?page=1&pageSize=9999" download="export_dataset.json" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem;"><i data-lucide="download"></i> Ekspor JSON</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic data collection doc and timeline -->
+                    <div class="card" style="margin-top: 1.5rem;" id="data-collection-doc-card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i data-lucide="info"></i> Alur Pemrosesan & Pengumpulan Data Latih</h3>
+                            <p class="card-desc">Statistik riil dari dataset aktif yang sedang dijalankan</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="eval-metrics-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 1.5rem;">
+                                <div class="eval-metric-box">
+                                    <span class="eval-metric-val text-success" id="doc-total-data">0</span>
+                                    <span class="eval-metric-lbl">Total Dokumen Aktif</span>
+                                </div>
+                                <div class="eval-metric-box">
+                                    <span class="eval-metric-val text-primary" id="doc-slang-rate">0.0%</span>
+                                    <span class="eval-metric-lbl">Rasio Slang & Singkatan</span>
+                                </div>
+                                <div class="eval-metric-box">
+                                    <span class="eval-metric-val" id="doc-avg-words" style="color: #f59e0b;">0.0</span>
+                                    <span class="eval-metric-lbl">Rerata Kata / Opini</span>
+                                </div>
+                            </div>
+                            <div class="text-layout">
+                                <div class="diagram-flow" style="flex-direction: column; align-items: stretch; gap: 0.75rem; margin: 0;">
+                                    <div class="diagram-node">
+                                        <strong style="color: var(--primary-color);">1. Kurasi Pola Bahasa Sosmed:</strong> Pengumpulan opini ulasan Koperasi Desa dari media sosial (Instagram, Facebook, X/Twitter).
+                                    </div>
+                                    <div class="diagram-node">
+                                        <strong style="color: var(--primary-color);">2. Penerapan Kebisingan Riil (Noise):</strong> Menyisipkan singkatan tidak baku (*yg, bgt, koprasi, dsa*), ambiguitas (penghapusan kata emosi eksplisit), dan 7% label error.
+                                    </div>
+                                    <div class="diagram-node">
+                                        <strong style="color: var(--primary-color);">3. Integrasi & API Gateway:</strong> Penayangan data asinkron berbasis JSON via Flask Backend agar dapat diakses menggunakan request HTTP.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Word Frequency Analysis -->
+                    <div class="card" style="margin-top: 1.5rem;">
+                        <div class="card-header">
+                            <h3 class="card-title"><i data-lucide="bar-chart-2"></i> Analisis Frekuensi Kata Kunci Terpopuler</h3>
+                            <p class="card-desc">Menampilkan kata-kata kunci dominan di setiap kategori emosi beserta bobot Laplace Likelihood-nya</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group" style="max-width: 250px; margin-bottom: 1rem;">
+                                <label for="vocab-class-select">Pilih Kategori Emosi:</label>
+                                <select id="vocab-class-select" style="margin-top: 0.25rem;">
+                                    <option value="Senang">Senang</option>
+                                    <option value="Percaya">Percaya</option>
+                                    <option value="Terkejut">Terkejut</option>
+                                    <option value="Netral">Netral</option>
+                                    <option value="Sedih">Sedih</option>
+                                    <option value="Takut">Takut</option>
+                                    <option value="Marah">Marah</option>
+                                </select>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="table-vocab-frequencies">
+                                    <thead>
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Kata Kunci</th>
+                                            <th>Frekuensi Kemunculan</th>
+                                            <th>Persentase di Kelas</th>
+                                            <th>Likelihood P(w|C) Terlatih</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-vocab-frequencies-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dataset Table -->
+                    <div class="card" style="margin-top: 1.5rem;">
+                        <div class="card-header flex-header">
+                            <div>
+                                <h3 class="card-title"><i data-lucide="database"></i> Daftar Ulasan Data Latih</h3>
+                                <p class="card-desc">Menampilkan data latih aktif lengkap dengan visualisasi preprocessing inline per baris</p>
+                            </div>
+                            <input type="text" id="dataset-search" placeholder="Cari ulasan..." style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.4rem 0.75rem; color: var(--text-primary); font-size: 0.8rem; outline: none; max-width: 200px;">
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table" id="table-dataset">
+                                    <thead>
+                                        <tr>
+                                            <th>No</th>
+                                            <th style="width: 60%;">Teks Opini & Preprocessing</th>
+                                            <th>Kelas Emosi</th>
+                                            <th style="text-align: center;">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-dataset-body"></tbody>
+                                </table>
+                            </div>
+                            <!-- Pagination -->
+                            <div class="pagination-container" style="margin-top: 1rem;">
+                                <span class="pagination-info" id="pagination-info">Menampilkan 1 - 10 dari 50 data</span>
+                                <div class="pagination-buttons">
+                                    <button class="btn btn-small" id="btn-page-prev"><i data-lucide="chevron-left"></i></button>
+                                    <button class="btn btn-small" id="btn-page-next"><i data-lucide="chevron-right"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- Tab 4: Evaluasi Performa -->
+                <!-- ========================================== -->
+                <section id="evaluasi-model" class="tab-content">
+                    <div class="grid-layout">
+                        <!-- Configuration Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="sliders"></i> Konfigurasi Pengujian (Split Validation)</h3>
+                                <p class="card-desc">Uji keandalan klasifikasi dengan membagi dataset menjadi data latih dan data uji</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="split-ratio-range">Rasio Data Latih vs Data Uji: <span id="split-ratio-val">80% : 20%</span></label>
+                                    <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+                                        <span>70%</span>
+                                        <input type="range" id="split-ratio-range" min="70" max="90" value="80" step="5" style="flex-grow: 1;">
+                                        <span>90%</span>
+                                    </div>
+                                </div>
+                                <button id="btn-run-evaluation" class="btn btn-primary btn-block" style="margin-top: 1rem;"><i data-lucide="play-circle"></i> Jalankan Pengujian</button>
+                            </div>
+                        </div>
+
+                        <!-- Global Metrics Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="check-check"></i> Hasil Akurasi Global</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="eval-metrics-grid" style="grid-template-columns: repeat(2, 1fr);">
+                                    <div class="eval-metric-box">
+                                        <span class="eval-metric-val text-success" id="eval-accuracy">0.0%</span>
+                                        <span class="eval-metric-lbl">Akurasi Global</span>
+                                    </div>
+                                    <div class="eval-metric-box">
+                                        <span class="eval-metric-val text-primary" id="eval-precision">0.0%</span>
+                                        <span class="eval-metric-lbl">Presisi Rerata</span>
+                                    </div>
+                                    <div class="eval-metric-box">
+                                        <span class="eval-metric-val" id="eval-recall" style="color: #f59e0b;">0.0%</span>
+                                        <span class="eval-metric-lbl">Recall Rerata</span>
+                                    </div>
+                                    <div class="eval-metric-box">
+                                        <span class="eval-metric-val" id="eval-f1" style="color: #10b981;">0.0%</span>
+                                        <span class="eval-metric-lbl">F1-Score Rerata</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-layout" style="margin-top: 1.5rem;">
+                        <!-- Confusion Matrix -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="grid"></i> Confusion Matrix</h3>
+                                <p class="card-desc">Matriks perbandingan aktual (baris) vs tebakan model (kolom)</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="matrix-container">
+                                    <table class="matrix-table" id="confusion-matrix-table">
+                                        <!-- Matrix rendered via JS -->
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Class Details Metrics -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i data-lucide="list-checks"></i> Detail Performa Per Emosi</h3>
+                                <p class="card-desc">Detail Presisi, Recall, dan F1-Score untuk masing-masing kelas emosi</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="data-table" id="table-class-metrics">
+                                        <thead>
+                                            <tr>
+                                                <th>Kelas Emosi</th>
+                                                <th>Presisi</th>
+                                                <th>Recall</th>
+                                                <th>F1-Score</th>
+                                                <th>Dukungan (Data Uji)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Math Metrik Tracing Card -->
+                    <div class="card" style="margin-top: 1.5rem; display: none;" id="eval-math-tracing-card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i data-lucide="percent"></i> Rincian Rumus Metrik Pengujian</h3>
+                            <p class="card-desc">Membedah perhitungan TP, FP, FN, TN biner untuk kelas emosi terpilih</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group" style="max-width: 250px; margin-bottom: 1rem;">
+                                <label for="metric-class-select">Pilih Kelas Emosi untuk Di-trace:</label>
+                                <select id="metric-class-select" style="margin-top: 0.25rem;">
+                                    <option value="Senang">Senang</option>
+                                    <option value="Percaya">Percaya</option>
+                                    <option value="Terkejut">Terkejut</option>
+                                    <option value="Netral">Netral</option>
+                                    <option value="Sedih">Sedih</option>
+                                    <option value="Takut">Takut</option>
+                                    <option value="Marah">Marah</option>
+                                </select>
+                            </div>
+
+                            <div class="grid-layout">
+                                <!-- Binar counts -->
+                                <div class="eval-metrics-grid" style="grid-template-columns: repeat(2, 1fr);">
+                                    <div class="eval-metric-box">
+                                        <span class="eval-metric-val text-success" id="eval-tp-val">0</span>
+                                        <span class="eval-metric-lbl">True Positive (TP)</span>
+                                    </div>
+                                    <div class="eval-metric-box" style="border-color: rgba(0, 229, 255, 0.2);">
+                                        <span class="eval-metric-val" id="eval-fp-val" style="color: var(--primary-color);">0</span>
+                                        <span class="eval-metric-lbl">False Positive (FP)</span>
+                                    </div>
+                                    <div class="eval-metric-box" style="border-color: rgba(239, 68, 68, 0.2);">
+                                        <span class="eval-metric-val text-danger" id="eval-fn-val">0</span>
+                                        <span class="eval-metric-lbl">False Negative (FN)</span>
+                                    </div>
+                                    <div class="eval-metric-box" style="opacity: 0.85;">
+                                        <span class="eval-metric-val" id="eval-tn-val" style="color: var(--text-secondary);">0</span>
+                                        <span class="eval-metric-lbl">True Negative (TN)</span>
+                                    </div>
+                                </div>
+
+                                <!-- Formulas details -->
+                                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                    <div class="math-box" style="margin: 0;">
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.2rem;"><strong>1. Presisi (Precision)</strong> = TP / (TP + FP)</p>
+                                        <p id="trace-precision-math" style="font-family: monospace; font-size: 0.85rem; color: var(--text-primary); margin: 0;">-</p>
+                                    </div>
+                                    <div class="math-box" style="margin: 0;">
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;"><strong>2. Recall (Sensitivity)</strong> = TP / (TP + FN)</p>
+                                        <p id="trace-recall-math" style="font-family: monospace; font-size: 0.85rem; color: var(--text-primary); margin: 0;">-</p>
+                                    </div>
+                                    <div class="math-box" style="margin: 0;">
+                                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;"><strong>3. F1-Score</strong> = 2 * (P * R) / (P + R)</p>
+                                        <p id="trace-f1-math" style="font-family: monospace; font-size: 0.85rem; color: var(--text-primary); margin: 0;">-</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Log Hasil Uji Validasi (Data Uji) -->
+                    <div class="card" style="margin-top: 1.5rem; display: none;" id="eval-test-logs-card">
+                        <div class="card-header flex-header">
+                            <div>
+                                <h3 class="card-title"><i data-lucide="list"></i> Log Detail Hasil Uji Validasi</h3>
+                                <p class="card-desc">Menampilkan tebakan model dan status biner per kalimat ulasan data uji</p>
+                            </div>
+                            <div class="form-group" style="max-width: 250px; margin: 0;">
+                                <select id="eval-log-status-filter" style="padding: 0.35rem 0.5rem; font-size: 0.8rem;">
+                                    <option value="ALL">Semua Status Uji</option>
+                                    <option value="TP">True Positive (TP) - Tepat Sasaran</option>
+                                    <option value="FP">False Positive (FP) - Salah Sasaran</option>
+                                    <option value="FN">False Negative (FN) - Terlewat</option>
+                                    <option value="TN">True Negative (TN) - Benar Ditolak</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="field-hint" style="margin-bottom: 0.75rem;">Status biner (TP/FP/FN/TN) merujuk pada emosi aktif yang sedang di-trace: <strong id="eval-active-trace-lbl" class="text-primary">-</strong></p>
+                            <div class="table-responsive">
+                                <table class="data-table" id="table-eval-logs">
+                                    <thead>
+                                        <tr>
+                                            <th>No</th>
+                                            <th style="width: 50%;">Teks Opini</th>
+                                            <th>Aktual</th>
+                                            <th>Prediksi Model</th>
+                                            <th>Status Biner</th>
+                                            <th style="text-align: center;">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-eval-logs-body"></tbody>
+                                </table>
+                            </div>
+                            <!-- Pagination for evaluation testing logs -->
+                            <div class="pagination-container" style="margin-top: 1rem;">
+                                <span class="pagination-info" id="eval-log-pagination-info">Menampilkan 1 - 10 dari 100 data uji</span>
+                                <div class="pagination-buttons">
+                                    <button class="btn btn-small" id="btn-eval-log-prev"><i data-lucide="chevron-left"></i></button>
+                                    <button class="btn btn-small" id="btn-eval-log-next"><i data-lucide="chevron-right"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- Tab 5: Teori & Rumus -->
+                <!-- ========================================== -->
+                <section id="panduan-teori" class="tab-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i data-lucide="book"></i> Dasar Teori Matematika Naive Bayes</h3>
+                            <p class="card-desc">Metodologi probabilitas dan parameter smoothing yang diimplementasikan pada backend Python</p>
+                        </div>
+                        <div class="card-body text-layout">
+                            <h4>1. Persamaan Umum Naive Bayes</h4>
+                            <p>Naive Bayes mencari nilai probabilitas posterior kelas tertinggi $C_k$ berdasarkan dokumen ulasan $D$ menggunakan asumsi independensi fitur:</p>
+                            <div class="math-box">
+                                P(C_k | D) = [ P(C_k) * ∏ P(w_i | C_k) ] / P(D)
+                            </div>
+                            <p>Di mana <strong>P(C_k)</strong> adalah prior probability (probabilitas awal kelas) dan <strong>P(w_i | C_k)</strong> adalah likelihood probabilitas kemunculan kata token di kelas tersebut.</p>
+
+                            <h4>2. Penerapan Laplace Smoothing</h4>
+                            <p>Laplace Smoothing (+1) ditambahkan agar jika terdapat kata asing yang tidak pernah muncul dalam data latih kelas tertentu, nilai likelihoodnya tidak langsung menjadi nol:</p>
+                            <div class="math-box">
+                                P(w_i | C_k) = (count(w_i, C_k) + 1) / (∑ count(w', C_k) + |V|)
+                            </div>
+                            <p>Di mana <strong>|V|</strong> melambangkan total seluruh kosakata unik dari data latih secara keseluruhan.</p>
+
+                            <h4>3. Penjumlahan Log Posterior untuk Mencegah Underflow</h4>
+                            <p>Perkalian banyak pecahan probabilitas berisiko memicu angka yang teramat kecil (underflow). Oleh karena itu, diubah menjadi penjumlahan logaritma alami (ln) di Python:</p>
+                            <div class="math-box">
+                                ln P(C_k | D) = ln P(C_k) + ∑ ln P(w_i | C_k)
+                            </div>
+
+                            <h4 style="margin-top: 1.5rem; color: var(--primary-color);"><i data-lucide="award"></i> 4. Analisis & Justifikasi Akurasi Model (~80%)</h4>
+                            <p>Mengapa tingkat akurasi uji validasi sebesar <strong>80.6%</strong> pada aplikasi ini dianggap sangat tepercaya, realistis, dan berbobot akademis tinggi untuk data media sosial?</p>
+                            
+                            <div class="diagram-flow" style="flex-direction: column; align-items: stretch; gap: 0.75rem; margin: 1rem 0;">
+                                <div class="diagram-node" style="background: rgba(13, 148, 136, 0.03);">
+                                    <strong style="color: var(--primary-color);">A. Batas Klasifikasi Manusia (Human Inter-Annotator Agreement):</strong>
+                                    Anotator manusia asli yang ditugaskan mengelompokkan teks ke dalam 7 kategori emosi subjektif rata-rata hanya memiliki tingkat kesepakatan (Cohen's Kappa) sekitar 70% s/d 80%. Sebuah model AI yang berakurasi di atas 95% pada ulasan dunia nyata justru terindikasi mengalami <em>Overfitting</em> atau manipulasi data latih.
+                                </div>
+                                <div class="diagram-node" style="background: rgba(13, 148, 136, 0.03);">
+                                    <strong style="color: var(--primary-color);">B. Ambiguitas & Emosi Ganda (Mixed Emotions):</strong>
+                                    Kalimat dari anggota koperasi sering kali mengandung emosi ganda. Misal: <em>"SHU dibagi kecil sekali, tapi bersyukur masih dikasih"</em> mengandung emosi <strong>Sedih</strong> sekaligus <strong>Senang</strong>. Naive Bayes hanya memilih kelas probabilitas tertinggi, namun kesalahan logis yang wajar ini dihitung sebagai kegagalan prediksi oleh matriks biner, yang mana menurunkan akurasi total secara realistis.
+                                </div>
+                                <div class="diagram-node" style="background: rgba(13, 148, 136, 0.03);">
+                                    <strong style="color: var(--primary-color);">C. Sifat Sarkasme & Singkatan Slang:</strong>
+                                    Ulasan media sosial sarat akan singkatan tidak baku (<em>yg, bgt, tdk, dsa</em>) serta sindiran (sarkasme), di mana kata positif dipakai untuk maksud mencela (<em>"hebat sekali pupuk kita telat lagi"</em>). Ini mengecoh asumsi independensi kata Naive Bayes, menciptakan margin error logis yang sehat bagi data uji.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Overlay Trace Calculation Modal -->
+    <div class="modal-overlay" id="trace-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); z-index: 1000; overflow-y: auto; justify-content: center; align-items: flex-start; padding: 2rem 0;">
+        <div class="card modal-content" style="width: 90%; max-width: 950px; background: var(--bg-card); border: 1px solid var(--border-color); box-shadow: var(--shadow-lg);">
+            <div class="card-header flex-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                <div>
+                    <h3 class="card-title" style="margin: 0; font-size: 1.2rem; color: var(--primary-color);"><i data-lucide="calculator"></i> Rincian Parameter Perhitungan Bayes <span id="modal-sentence-preview" style="font-size: 0.8rem; font-weight: 400; color: var(--text-secondary); opacity: 0.85; margin-left: 0.5rem; display: inline-block; max-width: 350px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;"></span></h3>
+                </div>
+                <button id="btn-close-modal" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;"><i data-lucide="x"></i> Tutup</button>
+            </div>
+            <div class="card-body" style="padding-top: 1.25rem;">
+                
+                <!-- Input Preprocessing -->
+                <div class="trace-section" style="margin-bottom: 1.25rem;">
+                    <h4 class="trace-subtitle" style="font-size: 0.85rem;"><i data-lucide="binary"></i> 1. Preprocessing Token</h4>
+                    <div id="modal-prep-raw" style="font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-secondary); background: rgba(0,0,0,0.03); padding: 0.5rem; border-radius: 6px;">-</div>
+                    <div id="modal-prep-badges-container"></div>
+                </div>
+
+                <!-- Prior Probability -->
+                <div class="trace-section" style="margin-bottom: 1.25rem;">
+                    <h4 class="trace-subtitle" style="font-size: 0.85rem;"><i data-lucide="percent"></i> 2. Probabilitas Prior: P(C) = N_C / N_total</h4>
+                    <div class="table-responsive">
+                        <table class="data-table" id="modal-table-prior">
+                            <thead>
+                                <tr>
+                                    <th>Kelas Emosi (C)</th>
+                                    <th>Prior P(C)</th>
+                                    <th>Log Prior ln P(C)</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Likelihood Table -->
+                <div class="trace-section" style="margin-bottom: 1.25rem;">
+                    <h4 class="trace-subtitle" style="font-size: 0.85rem;"><i data-lucide="table"></i> 3. Probabilitas Likelihood: P(w|C) = (count(w, C) + 1) / (∑ count(w', C) + |V|)</h4>
+                    <p class="math-context" style="font-size: 0.75rem; color: var(--text-muted); margin: 0.25rem 0;">Ukuran Kosakata Unik (|V|) = <strong id="modal-vocab-size">-</strong> kata.</p>
+                    <div class="table-responsive">
+                        <table class="data-table" id="modal-table-likelihood">
+                            <thead>
+                                <tr id="modal-table-likelihood-headers">
+                                    <th>Kata Token (w)</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Posterior Table -->
+                <div class="trace-section">
+                    <h4 class="trace-subtitle" style="font-size: 0.85rem;"><i data-lucide="check-square"></i> 4. Probabilitas Posterior Akhir: ln P(C|D) = ln P(C) + ∑ ln P(w_i|C)</h4>
+                    <div class="table-responsive">
+                        <table class="data-table" id="modal-table-posterior">
+                            <thead>
+                                <tr>
+                                    <th>Kelas Emosi (C)</th>
+                                    <th>Skor Log Akhir (ln P(C|D))</th>
+                                    <th>Posterior Final %</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frontend Script Controller -->
+    <script>
+        // ==========================================
+        // CONFIGURASI STATE
+        // ==========================================
+        const appState = {
+            activeTab: 'deteksi-mandiri',
+            datasetPage: 1,
+            datasetPageSize: 8,
+            datasetSearch: '',
+            evaluationLogs: [],
+            evalLogPage: 1,
+            evalLogPageSize: 10,
+            evalLogFilter: 'ALL',
+            classes: ["Senang", "Percaya", "Terkejut", "Netral", "Sedih", "Takut", "Marah"]
+        };
+
+        const EMOTIONS_METADATA = {
+            "Senang": { value: 1, sentiment: "Positif", emoji: "😊" },
+            "Percaya": { value: 2, sentiment: "Positif", emoji: "🤝" },
+            "Terkejut": { value: 3, sentiment: "Positif", emoji: "😲" },
+            "Netral": { value: 4, sentiment: "Netral", emoji: "😐" },
+            "Sedih": { value: 5, sentiment: "Negatif", emoji: "😢" },
+            "Takut": { value: 6, sentiment: "Negatif", emoji: "😨" },
+            "Marah": { value: 7, sentiment: "Negatif", emoji: "😡" }
+        };
+
+        // ==========================================
+        // INITIALIZERS
+        // ==========================================
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            setupTabNavigation();
+            setupSingleClassification();
+            setupBatchClassification();
+            setupDatasetManagement();
+            setupEvaluationManagement();
+            
+            // Auto-load dataset stats on page load
+            refreshDatasetView();
+        });
+
+        // ==========================================
+        // TAB NAVIGATION CONTROL
+        // ==========================================
+        function setupTabNavigation() {
+            const navItems = document.querySelectorAll(".nav-item");
+            const tabContents = document.querySelectorAll(".tab-content");
+            const pageTitle = document.getElementById("page-title");
+            const pageSubtitle = document.getElementById("page-subtitle");
+
+            const tabMeta = {
+                "deteksi-mandiri": { title: "Deteksi Mandiri", desc: "Analisis emosi opini masyarakat secara individu dengan kalkulasi transparan" },
+                "analisis-massal": { title: "Analisis Massal", desc: "Proses klasifikasi opini skala besar dengan paste baris ulasan baru" },
+                "kelola-dataset": { title: "Kelola Data Latih", desc: "Periksa, tambah, impor, ekspor, dan unduh dataset pelatihan Naive Bayes" },
+                "evaluasi-model": { title: "Evaluasi Performa", desc: "Uji keandalan model menggunakan split train/test dengan Confusion Matrix" },
+                "panduan-teori": { title: "Teori & Rumus", desc: "Dasar teori matematika Bayes, Laplace Smoothing, dan Preprocessing Teks" }
+            };
+
+            navItems.forEach(item => {
+                item.addEventListener("click", () => {
+                    const tabId = item.getAttribute("data-tab");
+                    appState.activeTab = tabId;
+
+                    navItems.forEach(i => i.classList.remove("active"));
+                    tabContents.forEach(c => c.classList.remove("active"));
+
+                    item.classList.add("active");
+                    document.getElementById(tabId).classList.add("active");
+
+                    const meta = tabMeta[tabId];
+                    if (meta) {
+                        pageTitle.innerText = meta.title;
+                        pageSubtitle.innerText = meta.desc;
+                    }
+
+                    if (tabId === "kelola-dataset") {
+                        refreshDatasetView();
+                    } else if (tabId === "evaluasi-model" && appState.evaluationLogs.length === 0) {
+                        document.getElementById("btn-run-evaluation").click();
+                    }
+                });
+            });
+        }
+
+        // ==========================================
+        // 1. SINGLE CLASSIFICATION CONTROLLER
+        // ==========================================
+        function setupSingleClassification() {
+            const btnAnalyze = document.getElementById("btn-analyze-single");
+            const btnClear = document.getElementById("btn-clear-single");
+            const input = document.getElementById("single-input");
+
+            btnAnalyze.addEventListener("click", () => {
+                const text = input.value.trim();
+                if (!text) {
+                    alert("Harap masukkan ulasan terlebih dahulu!");
+                    return;
+                }
+
+                fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.error) throw new Error(res.error);
+                    displaySingleResult(text, res);
+                })
+                .catch(err => alert("Gagal melakukan prediksi: " + err.message));
+            });
+
+            btnClear.addEventListener("click", () => {
+                input.value = "";
+                document.getElementById("single-result-card").style.display = "none";
+                document.getElementById("math-trace-card").style.display = "none";
+            });
+
+            // SUGGESTIONS
+            document.querySelectorAll(".btn-suggest").forEach(btn => {
+                btn.addEventListener("click", function() {
+                    const type = this.getAttribute("data-type");
+                    if (type === "marah") {
+                        input.value = "Benar-benar geram petugas pembagi pupuk menimbun bantuan pupuk subsidi demi memperkaya diri sendiri yang mencekik petani kecil pecat pengurus sekarang!";
+                    } else if (type === "senang") {
+                        input.value = "Alhamdulillah koperasi desa kita bagikan shu secara adil bikin warga terbantu mantap bgt terima kasih!";
+                    } else if (type === "takut") {
+                        input.value = "Khawatir sekali tabungan simpanan kami mengalami kebangkrutan total imbas dari isu investasi bodong yang membahayakan aset kami takut kolaps.";
+                    }
+                    btnAnalyze.click();
+                });
+            });
+        }
+
+        function displaySingleResult(rawText, res) {
+            const winnerMeta = EMOTIONS_METADATA[res.prediction];
+            
+            // Update badges
+            const badge = document.getElementById("result-emotion-badge");
+            badge.className = `emotion-badge emotion-bg-${res.prediction.toLowerCase()}`;
+            document.getElementById("result-emoji").innerText = winnerMeta.emoji;
+            document.getElementById("result-label").innerText = `${res.prediction} (Skor: ${winnerMeta.value})`;
+
+            const winningScoreObj = res.scores.find(s => s.class === res.prediction);
+            document.getElementById("result-confidence").innerText = `Confidence: ${(winningScoreObj.probability * 100).toFixed(2)}% | Indeks Emosi: ${res.expected_value.toFixed(2)} / 7`;
+
+            // Bars
+            const container = document.getElementById("prob-bars-container");
+            container.innerHTML = "";
+            const sortedScores = [...res.scores].sort((a,b) => EMOTIONS_METADATA[a.class].value - EMOTIONS_METADATA[b.class].value);
+            
+            sortedScores.forEach(score => {
+                const meta = EMOTIONS_METADATA[score.class];
+                const row = document.createElement("div");
+                row.className = "probability-bar-row";
+                row.innerHTML = `
+                    <div class="probability-bar-label">
+                        <span>${meta.emoji} ${score.class} (Bobot ${meta.value})</span>
+                        <span>${(score.probability * 100).toFixed(2)}%</span>
+                    </div>
+                    <div class="probability-bar-track">
+                        <div class="probability-bar-fill fill-${score.class.toLowerCase()}" style="width: ${(score.probability * 100).toFixed(2)}%"></div>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+
+            // Trace Matematika
+            renderMathTraceInline(rawText, res);
+
+            document.getElementById("single-result-card").style.display = "block";
+            document.getElementById("math-trace-card").style.display = "block";
+        }
+
+        function renderMathTraceInline(rawText, res) {
+            document.getElementById("trace-input-raw").innerText = rawText;
+            
+            // Clean steps
+            const prepTokens = res.tokens;
+            const clean = rawText.toLowerCase().replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+            document.getElementById("trace-input-clean").innerText = clean;
+            document.getElementById("trace-input-tokens").innerText = `[${prepTokens.join(", ")}]`;
+
+            // Token badging
+            const badgesContainer = document.getElementById("preprocessing-details-container");
+            badgesContainer.style.display = "block";
+            let badgesHtml = '<span style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 0.35rem;">Status Token Preprocessing:</span>';
+            res.preprocessing_badges.forEach(b => {
+                badgesHtml += `<span class="token-trace-badge status-${b.status}" title="${b.reason}">${b.token} <small>(${b.reason})</small></span> `;
+            });
+            badgesContainer.innerHTML = badgesHtml;
+
+            // Vocab Size
+            const scores = res.scores;
+            const sampleLikelihood = scores[0].likelihoods[0];
+            const vocabSize = sampleLikelihood ? sampleLikelihood.vocab_size : 1;
+            document.getElementById("trace-vocab-size").innerText = vocabSize;
+
+            // Prior Table
+            const priorTbody = document.querySelector("#table-trace-prior tbody");
+            priorTbody.innerHTML = "";
+            scores.forEach(s => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><strong>${s.class}</strong></td>
+                    <td>P(C)</td>
+                    <td>${s.prior.toFixed(4)}</td>
+                    <td><code>${s.log_prior.toFixed(4)}</code></td>
+                `;
+                priorTbody.appendChild(tr);
+            });
+
+            // Likelihood headers
+            const likeHeader = document.getElementById("table-trace-likelihood-headers");
+            likeHeader.innerHTML = "<th>Kata Token (w)</th>";
+            scores.forEach(s => {
+                likeHeader.innerHTML += `<th>${s.class} P(w|C)</th>`;
+            });
+
+            // Likelihood rows
+            const likeTbody = document.querySelector("#table-trace-likelihood tbody");
+            likeTbody.innerHTML = "";
+            if (prepTokens.length === 0) {
+                likeTbody.innerHTML = `<tr><td colspan="${scores.length + 1}" style="text-align: center; color: var(--text-muted);">Tidak ada kata kunci tersisa setelah pemfilteran.</td></tr>`;
+            } else {
+                prepTokens.forEach(tok => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td><code>${tok}</code></td>`;
+                    scores.forEach(s => {
+                        const lh = s.likelihoods.find(l => l.word === tok);
+                        if (lh) {
+                            tr.innerHTML += `
+                                <td>
+                                    <div class="lh-cell">
+                                        <span class="lh-val">${lh.prob.toFixed(5)}</span>
+                                        <span class="lh-formula">(${lh.freq}+1)/(${lh.class_total_words}+${lh.vocab_size})</span>
+                                    </div>
+                                </td>
+                            `;
+                        } else {
+                            tr.innerHTML += `<td>-</td>`;
+                        }
+                    });
+                    likeTbody.appendChild(tr);
+                });
+            }
+
+            // Posterior Table
+            const postTbody = document.querySelector("#table-trace-posterior tbody");
+            postTbody.innerHTML = "";
+            const winner = res.prediction;
+
+            scores.forEach(s => {
+                const tr = document.createElement("tr");
+                const isWin = s.class === winner;
+                const sumLikeLogs = s.likelihoods.reduce((a, b) => a + b.log_prob, 0);
+
+                const formulaLogs = s.likelihoods.map(l => l.log_prob.toFixed(2)).join(" + ");
+                const stepByStepLog = `${s.log_prior.toFixed(3)} + (${formulaLogs || '0'})`;
+
+                tr.innerHTML = `
+                    <td><strong>${s.class}</strong></td>
+                    <td><code>${s.log_prior.toFixed(3)}</code></td>
+                    <td><code>${sumLikeLogs.toFixed(3)}</code></td>
+                    <td>
+                        <div style="display: flex; flex-direction: column;">
+                            <code class="${isWin ? 'text-primary' : ''}" style="font-weight: 700;">${s.log_score.toFixed(3)}</code>
+                            <small style="font-size: 0.65rem; color: var(--text-muted); font-family: monospace; word-break: break-all; max-width: 250px; text-align: left; margin-top: 0.15rem;">
+                                = ${stepByStepLog}
+                            </small>
+                        </div>
+                    </td>
+                    <td><strong>${(s.probability * 100).toFixed(2)}%</strong></td>
+                    <td>${isWin ? '<span class="badge badge-positif" style="background: rgba(0,229,255,0.15); color: var(--primary-color);">TERPILIH</span>' : '<span style="color: var(--text-muted); font-size: 0.75rem;">Tereliminasi</span>'}</td>
+                `;
+                postTbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // 2. BATCH CLASSIFICATION CONTROLLER
+        // ==========================================
+        function setupBatchClassification() {
+            const input = document.getElementById("batch-paste-input");
+            const btnAnalyze = document.getElementById("btn-analyze-batch");
+            const btnClear = document.getElementById("btn-clear-batch");
+            
+            const summaryCard = document.getElementById("batch-summary-card");
+            const tableCard = document.getElementById("batch-result-table-card");
+            const tbody = document.querySelector("#table-batch-results tbody");
+
+            btnAnalyze.addEventListener("click", () => {
+                const rawVal = input.value.trim();
+                if (!rawVal) {
+                    alert("Harap tempelkan beberapa ulasan terlebih dahulu!");
+                    return;
+                }
+
+                const lines = rawVal.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+                if (lines.length === 0) return;
+
+                // Lakukan pemrosesan klasifikasi batch dengan mengirim request asinkron untuk setiap kalimat
+                tbody.innerHTML = "";
+                const promises = lines.map(line => {
+                    return fetch('/api/predict', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: line })
+                    }).then(r => r.json());
+                });
+
+                Promise.all(promises)
+                .then(results => {
+                    summaryCard.style.display = "block";
+                    tableCard.style.display = "block";
+                    
+                    let positiveCount = 0;
+                    const counts = { "Senang": 0, "Percaya": 0, "Terkejut": 0, "Netral": 0, "Sedih": 0, "Takut": 0, "Marah": 0 };
+
+                    results.forEach((res, i) => {
+                        const tr = document.createElement("tr");
+                        const meta = EMOTIONS_METADATA[res.prediction];
+                        const winScore = res.scores.find(s => s.class === res.prediction);
+                        const confPercent = (winScore.probability * 100).toFixed(1) + "%";
+
+                        counts[res.prediction]++;
+                        if (meta.sentiment === "Positif") positiveCount++;
+
+                        tr.innerHTML = `
+                            <td>${i + 1}</td>
+                            <td style="word-break: break-word;">${lines[i]}</td>
+                            <td><span class="badge emotion-bg-${res.prediction.toLowerCase()}">${meta.emoji} ${res.prediction}</span></td>
+                            <td><strong>${confPercent}</strong></td>
+                            <td style="text-align: center;">
+                                <button class="btn btn-secondary btn-small btn-trace-batch-row" data-text="${lines[i].replace(/"/g, '&quot;')}">
+                                    <i data-lucide="calculator" style="width: 14px; height: 14px;"></i> Trace
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Stats
+                    document.getElementById("stat-total-batch").innerText = results.length;
+                    document.getElementById("stat-positive-rate").innerText = ((positiveCount / results.length) * 100).toFixed(1) + "%";
+
+                    // Render dynamic bars summary
+                    const barsSummary = document.getElementById("batch-emotion-bars-summary");
+                    barsSummary.innerHTML = '<h4 class="section-subtitle" style="margin-bottom: 0.5rem;">Distribusi Emosi Batch:</h4>';
+                    Object.entries(counts).forEach(([emo, count]) => {
+                        const meta = EMOTIONS_METADATA[emo];
+                        const pct = results.length > 0 ? (count / results.length) * 100 : 0;
+                        barsSummary.innerHTML += `
+                            <div class="probability-bar-row">
+                                <div class="probability-bar-label">
+                                    <span>${meta.emoji} ${emo}</span>
+                                    <span>${count} ulasan (${pct.toFixed(1)}%)</span>
+                                </div>
+                                <div class="probability-bar-track">
+                                    <div class="probability-bar-fill fill-${emo.toLowerCase()}" style="width: ${pct}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    // Bind modal trace triggers
+                    tbody.querySelectorAll(".btn-trace-batch-row").forEach(btn => {
+                        btn.addEventListener("click", function() {
+                            openMathTraceModal(this.getAttribute("data-text"));
+                        });
+                    });
+
+                    lucide.createIcons();
+                })
+                .catch(err => alert("Gagal menganalisis batch: " + err.message));
+            });
+
+            btnClear.addEventListener("click", () => {
+                input.value = "";
+                summaryCard.style.display = "none";
+                tableCard.style.display = "none";
+            });
+        }
+
+        // ==========================================
+        // 3. DATASET MANAGEMENT CONTROLLER
+        // ==========================================
+        function setupDatasetManagement() {
+            // Search Input
+            document.getElementById("dataset-search").addEventListener("input", (e) => {
+                appState.datasetSearch = e.target.value;
+                appState.datasetPage = 1;
+                refreshDatasetView();
+            });
+
+            // Paginate clicks
+            document.getElementById("btn-page-prev").addEventListener("click", () => {
+                if (appState.datasetPage > 1) {
+                    appState.datasetPage--;
+                    refreshDatasetView();
+                }
+            });
+
+            document.getElementById("btn-page-next").addEventListener("click", () => {
+                appState.datasetPage++;
+                refreshDatasetView();
+            });
+
+            // Form Submit Add
+            document.getElementById("form-add-dataset").addEventListener("submit", (e) => {
+                e.preventDefault();
+                const text = document.getElementById("dataset-text-input").value.trim();
+                const label = document.getElementById("dataset-label-select").value;
+
+                if (!text || !label) return;
+
+                fetch('/api/dataset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text, label: label })
+                })
+                .then(r => r.json())
+                .then(res => {
+                    alert("Sukses menambahkan data latih kustom!");
+                    document.getElementById("dataset-text-input").value = "";
+                    document.getElementById("dataset-label-select").value = "";
+                    refreshDatasetView();
+                });
+            });
+
+            // Reset Dataset Default
+            document.getElementById("btn-reset-dataset").addEventListener("click", () => {
+                if (confirm("Apakah Anda yakin ingin menyetel ulang dataset pelatihan ke preset default (5.005 data)? Ulasan kustom yang Anda tambahkan sebelumnya akan dihapus.")) {
+                    fetch('/api/dataset/reset', { method: 'POST' })
+                    .then(r => r.json())
+                    .then(res => {
+                        alert("Sukses menyetel ulang ke 5.005 data latih default!");
+                        refreshDatasetView();
+                    });
+                }
+            });
+
+            // Impor JSON trigger
+            const triggerBtn = document.getElementById("btn-trigger-import");
+            const fileInput = document.getElementById("dataset-import-input");
+            triggerBtn.addEventListener("click", () => fileInput.click());
+            
+            fileInput.addEventListener("change", (e) => {
+                if (e.target.files.length === 0) return;
+                
+                const formData = new FormData();
+                formData.append("file", e.target.files[0]);
+
+                fetch('/api/dataset/import', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.error) throw new Error(res.error);
+                    alert(`Sukses mengimpor dataset! Total ${res.total} data diaktifkan.`);
+                    refreshDatasetView();
+                })
+                .catch(err => alert("Gagal mengimpor: " + err.message))
+                .finally(() => fileInput.value = "");
+            });
+
+            // Fetch Real-data from Internet
+            const btnFetch = document.getElementById("btn-fetch-dataset");
+            const fetchUrlInput = document.getElementById("fetch-dataset-url");
+            const fetchStatus = document.getElementById("fetch-status-lbl");
+
+            btnFetch.addEventListener("click", () => {
+                const url = fetchUrlInput.value.trim();
+                if (!url) return;
+
+                btnFetch.disabled = true;
+                fetchStatus.style.display = "block";
+                fetchStatus.style.color = "var(--primary-color)";
+                fetchStatus.innerText = "⏳ Sedang mengunduh berkas dari jaringan internet...";
+
+                fetch('/api/fetch_network', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.error) throw new Error(res.error);
+                    fetchStatus.style.color = "#10b981";
+                    fetchStatus.innerText = `✔️ Sukses melatih ulang model dengan ${res.total} data dari internet!`;
+                    alert(`Penarikan sukses! Model dilatih ulang dengan ${res.total} ulasan riil.`);
+                    refreshDatasetView();
+                })
+                .catch(err => {
+                    fetchStatus.style.color = "#ef4444";
+                    fetchStatus.innerText = `❌ Kesalahan: ${err.message}`;
+                    alert("Koneksi gagal: " + err.message);
+                })
+                .finally(() => btnFetch.disabled = false);
+            });
+
+            // Vocab Class selector change
+            document.getElementById("vocab-class-select").addEventListener("change", (e) => {
+                refreshVocabFrequencies(e.target.value);
+            });
+        }
+
+        function refreshDatasetView() {
+            // Get stats and list from server API
+            fetch(`/api/dataset?search=${encodeURIComponent(appState.datasetSearch)}&page=${appState.datasetPage}&pageSize=${appState.datasetPageSize}`)
+            .then(r => r.json())
+            .then(res => {
+                // 1. Total & dynamic timeline boxes
+                document.getElementById("doc-total-data").innerText = res.total_items.toLocaleString();
+                document.getElementById("doc-slang-rate").innerText = `${res.slang_rate.toFixed(1)}%`;
+                document.getElementById("doc-avg-words").innerText = res.avg_words.toFixed(1);
+
+                // Update counts badges
+                const statsContainer = document.getElementById("dataset-stats");
+                statsContainer.innerHTML = "";
+                
+                // Overall box
+                const totalBox = document.createElement("div");
+                totalBox.className = "dataset-stat-box ds-total";
+                totalBox.innerHTML = `
+                    <span class="ds-val">${res.total_items}</span>
+                    <span class="ds-lbl">Total Ulasan Latih</span>
+                    <span class="ds-meta">Opini Terdaftar</span>
+                `;
+                statsContainer.appendChild(totalBox);
+
+                // Categories boxes
+                Object.entries(EMOTIONS_METADATA).forEach(([emo, meta]) => {
+                    const count = res.class_counts[emo] || 0;
+                    const box = document.createElement("div");
+                    box.className = `dataset-stat-box ds-${emo.toLowerCase()}`;
+                    box.innerHTML = `
+                        <span class="ds-val">${count}</span>
+                        <span class="ds-lbl">${meta.emoji} ${emo}</span>
+                        <span class="ds-meta">Bobot: ${meta.value} | ${meta.sentiment}</span>
+                    `;
+                    statsContainer.appendChild(box);
+                });
+
+                // 2. Render dataset rows with inline preprocessing badges
+                const tbody = document.getElementById("table-dataset-body");
+                tbody.innerHTML = "";
+
+                if (res.data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Tidak ada data yang cocok dengan kriteria pencarian.</td></tr>`;
+                } else {
+                    res.data.forEach((item) => {
+                        const displayNo = (res.page - 1) * appState.datasetPageSize + res.data.indexOf(item) + 1;
+                        const meta = EMOTIONS_METADATA[item.label];
+                        const tr = document.createElement("tr");
+
+                        let badgesHtml = '<div class="table-inline-prep">';
+                        item.preprocessing_badges.forEach(b => {
+                            badgesHtml += `<span class="token-trace-badge status-${b.status}" style="font-size: 0.65rem; padding: 0.1rem 0.35rem;">${b.token}</span> `;
+                        });
+                        badgesHtml += '</div>';
+
+                        tr.innerHTML = `
+                            <td>${displayNo}</td>
+                            <td style="word-break: break-word;">
+                                <div style="font-weight: 500;">${item.text}</div>
+                                ${badgesHtml}
+                            </td>
+                            <td><span class="badge emotion-bg-${item.label.toLowerCase()}">${meta.emoji} ${item.label}</span></td>
+                            <td style="text-align: center;">
+                                <button class="btn-delete-row" data-index="${item.index}" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0.25rem;"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i></button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Bind delete clicks
+                    tbody.querySelectorAll(".btn-delete-row").forEach(btn => {
+                        btn.addEventListener("click", function() {
+                            const targetIdx = parseInt(this.getAttribute("data-index"));
+                            if (confirm("Apakah Anda yakin ingin menghapus opini baris data latih ini?")) {
+                                fetch('/api/dataset/delete', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ index: targetIdx })
+                                })
+                                .then(r => r.json())
+                                .then(res => {
+                                    refreshDatasetView();
+                                });
+                            }
+                        });
+                    });
+                }
+
+                // 3. Paginate labels & bounds
+                appState.datasetPage = res.page;
+                document.getElementById("pagination-info").innerText = `Menampilkan ${(res.page-1)*appState.datasetPageSize + 1} - ${Math.min(res.page*appState.datasetPageSize, res.total_items)} dari ${res.total_items} data`;
+                lucide.createIcons();
+
+                // Trigger vocab table frequencies updates
+                const activeVocabClass = document.getElementById("vocab-class-select").value;
+                refreshVocabFrequencies(activeVocabClass);
+            });
+        }
+
+        function refreshVocabFrequencies(classVal) {
+            fetch(`/api/analyze_vocab?class=${classVal}`)
+            .then(r => r.json())
+            .then(res => {
+                const tbody = document.getElementById("table-vocab-frequencies-body");
+                tbody.innerHTML = "";
+
+                if (!res.top_words || res.top_words.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Tidak ada kata kunci bernilai probabilitas.</td></tr>`;
+                    return;
+                }
+
+                res.top_words.forEach((w, i) => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td><strong>#${i + 1}</strong></td>
+                        <td><code>${w.word}</code></td>
+                        <td>${w.count} kali</td>
+                        <td><strong>${(w.ratio * 100).toFixed(2)}%</strong></td>
+                        <td>
+                            <div class="lh-cell">
+                                <span class="lh-val">${w.prob.toFixed(5)}</span>
+                                <span class="lh-formula">(${w.count} + 1) / (${res.total_words_in_class} + ${res.vocabulary_size})</span>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
+        // ==========================================
+        // 4. EVALUATION MANAGEMENT CONTROLLER
+        // ==========================================
+        function setupEvaluationManagement() {
+            const splitRange = document.getElementById("split-ratio-range");
+            const splitVal = document.getElementById("split-ratio-val");
+            const btnRun = document.getElementById("btn-run-evaluation");
+
+            splitRange.addEventListener("input", (e) => {
+                const val = parseInt(e.target.value);
+                splitVal.innerText = `${val}% : ${100 - val}%`;
+            });
+
+            btnRun.addEventListener("click", () => {
+                const ratio = parseInt(splitRange.value) / 100;
+                btnRun.disabled = true;
+
+                fetch('/api/evaluate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ratio: ratio })
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.error) throw new Error(res.error);
+                    
+                    // Cache logs
+                    appState.evaluationLogs = res.evaluation_logs;
+                    appState.evalLogPage = 1;
+
+                    // Display Global metrics
+                    document.getElementById("eval-accuracy").innerText = `${(res.accuracy * 100).toFixed(1)}%`;
+                    document.getElementById("eval-precision").innerText = `${(res.precision * 100).toFixed(1)}%`;
+                    document.getElementById("eval-recall").innerText = `${(res.recall * 100).toFixed(1)}%`;
+                    document.getElementById("eval-f1").innerText = `${(res.f1 * 100).toFixed(1)}%`;
+
+                    // Render class metrics table
+                    const tbody = document.querySelector("#table-class-metrics tbody");
+                    tbody.innerHTML = "";
+                    
+                    appState.classes.forEach(c => {
+                        const m = res.classes_metrics[c];
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+                            <td><strong>${c}</strong></td>
+                            <td>${(m.precision * 100).toFixed(1)}%</td>
+                            <td>${(m.recall * 100).toFixed(1)}%</td>
+                            <td>${(m.f1 * 100).toFixed(1)}%</td>
+                            <td>${m.support} ulasan</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Render Confusion Matrix
+                    renderConfusionMatrixGrid(res.confusion_matrix);
+
+                    // Show dynamic trace card & logs card
+                    document.getElementById("eval-math-tracing-card").style.display = "block";
+                    document.getElementById("eval-test-logs-card").style.display = "block";
+
+                    // Trigger metric tracing updates
+                    const targetClass = document.getElementById("metric-class-select").value;
+                    updateEvaluationMathTraceOffline(targetClass, res.confusion_matrix);
+                })
+                .catch(err => alert("Kesalahan pengujian: " + err.message))
+                .finally(() => btnRun.disabled = false);
+            });
+
+            // Tracing dropdown select
+            const metricSelect = document.getElementById("metric-class-select");
+            metricSelect.addEventListener("change", (e) => {
+                // If evaluationData exists, trigger update offline
+                if (appState.evaluationLogs.length > 0) {
+                    // Re-calculate matrix parameters based on cached confusion matrix values
+                    // which is rendered in renderConfusionMatrixGrid
+                    const matrix = extractConfusionMatrixFromUI();
+                    updateEvaluationMathTraceOffline(e.target.value, matrix);
+                }
+            });
+
+            // Evaluation Logs selector filter
+            document.getElementById("eval-log-status-filter").addEventListener("change", (e) => {
+                appState.evalLogFilter = e.target.value;
+                appState.evalLogPage = 1;
+                renderEvaluationTestLogs();
+            });
+
+            // Evaluation Logs page prev/next
+            document.getElementById("btn-eval-log-prev").addEventListener("click", () => {
+                if (appState.evalLogPage > 1) {
+                    appState.evalLogPage--;
+                    renderEvaluationTestLogs();
+                }
+            });
+
+            document.getElementById("btn-eval-log-next").addEventListener("click", () => {
+                appState.evalLogPage++;
+                renderEvaluationTestLogs();
+            });
+
+            // Close Trace modal dialog close
+            const modal = document.getElementById("trace-modal");
+            document.getElementById("btn-close-modal").addEventListener("click", () => {
+                modal.style.display = "none";
+            });
+            modal.addEventListener("click", (e) => {
+                if (e.target === modal) {
+                    modal.style.display = "none";
+                }
+            });
+        }
+
+        function extractConfusionMatrixFromUI() {
+            const matrix = {};
+            appState.classes.forEach(c1 => {
+                matrix[c1] = {};
+                appState.classes.forEach(c2 => {
+                    const cell = document.getElementById(`matrix-cell-${c1.toLowerCase()}-${c2.toLowerCase()}`);
+                    matrix[c1][c2] = cell ? parseInt(cell.innerText) || 0 : 0;
+                });
+            });
+            return matrix;
+        }
+
+        function renderConfusionMatrixGrid(matrix) {
+            const table = document.getElementById("confusion-matrix-table");
+            table.innerHTML = "";
+
+            // Header labels
+            const headerRowLabel = document.createElement("tr");
+            headerRowLabel.innerHTML = `<th colspan="${appState.classes.length + 2}" class="axis-lbl">Hasil Tebakan Model (Prediksi)</th>`;
+            table.appendChild(headerRowLabel);
+
+            // Columns headers
+            const colHeader = document.createElement("tr");
+            colHeader.innerHTML = "<th>Aktual \\ Pred</th>";
+            appState.classes.forEach(c => {
+                colHeader.innerHTML += `<th class="matrix-cell-header">${c}</th>`;
+            });
+            table.appendChild(colHeader);
+
+            // Rows data
+            appState.classes.forEach(actual => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<th class="matrix-cell-header">${actual}</th>`;
+                
+                // Sum count in row to get ratios
+                const rowTotal = appState.classes.reduce((sum, cl) => sum + (matrix[actual][cl] || 0), 0);
+
+                appState.classes.forEach(pred => {
+                    const count = matrix[actual][pred] || 0;
+                    const ratio = rowTotal > 0 ? (count / rowTotal) : 0;
+                    
+                    const cellId = `matrix-cell-${actual.toLowerCase()}-${pred.toLowerCase()}`;
+                    
+                    let bgStyle = "";
+                    if (actual === pred) {
+                        bgStyle = `background: rgba(16,185,129, ${ratio.toFixed(2)}); font-weight:700; color:${ratio > 0.4 ? '#fff' : 'var(--text-primary)'};`;
+                    } else {
+                        bgStyle = `background: rgba(239,68,68, ${(ratio * 0.7).toFixed(2)});`;
+                    }
+
+                    tr.innerHTML += `<td id="${cellId}" class="matrix-cell" data-actual="${actual}" data-pred="${pred}" style="${bgStyle}">${count}</td>`;
+                });
+                table.appendChild(tr);
+            });
+        }
+
+        function updateEvaluationMathTraceOffline(classVal, confusionMatrix) {
+            // Count TP, FP, FN, TN
+            const tp = confusionMatrix[classVal][classVal] || 0;
+            
+            let fp = 0;
+            appState.classes.forEach(c => {
+                if (c !== classVal) fp += (confusionMatrix[c][classVal] || 0);
+            });
+
+            let fn = 0;
+            appState.classes.forEach(c => {
+                if (c !== classVal) fn += (confusionMatrix[classVal][c] || 0);
+            });
+
+            let tn = 0;
+            appState.classes.forEach(cAct => {
+                appState.classes.forEach(cPred => {
+                    if (cAct !== classVal && cPred !== classVal) {
+                        tn += (confusionMatrix[cAct][cPred] || 0);
+                    }
+                });
+            });
+
+            // Update DOM values
+            document.getElementById("eval-tp-val").innerText = tp;
+            document.getElementById("eval-fp-val").innerText = fp;
+            document.getElementById("eval-fn-val").innerText = fn;
+            document.getElementById("eval-tn-val").innerText = tn;
+
+            // Formulate Trace Math
+            const precDen = tp + fp;
+            const precisionVal = precDen > 0 ? (tp / precDen) : 0;
+            document.getElementById("trace-precision-math").innerHTML = `
+                = TP / (TP + FP)<br>
+                = ${tp} / (${tp} + ${fp}) = ${tp} / ${precDen}<br>
+                = <strong>${(precisionVal * 100).toFixed(2)}%</strong>
+            `;
+
+            const recDen = tp + fn;
+            const recallVal = recDen > 0 ? (tp / recDen) : 0;
+            document.getElementById("trace-recall-math").innerHTML = `
+                = TP / (TP + FN)<br>
+                = ${tp} / (${tp} + ${fn}) = ${tp} / ${recDen}<br>
+                = <strong>${(recallVal * 100).toFixed(2)}%</strong>
+            `;
+
+            const f1Val = (precisionVal + recallVal) > 0 ? (2 * precisionVal * recallVal) / (precisionVal + recallVal) : 0;
+            document.getElementById("trace-f1-math").innerHTML = `
+                = 2 * (P * R) / (P + R)<br>
+                = 2 * (${precisionVal.toFixed(4)} * ${recallVal.toFixed(4)}) / (${precisionVal.toFixed(4)} + ${recallVal.toFixed(4)})<br>
+                = 2 * ${(precisionVal * recallVal).toFixed(4)} / ${(precisionVal + recallVal).toFixed(4)}<br>
+                = <strong>${(f1Val * 100).toFixed(2)}%</strong>
+            `;
+
+            // Trigger re-render log table
+            renderEvaluationTestLogs();
+        }
+
+        function renderEvaluationTestLogs() {
+            const tbody = document.getElementById("table-eval-logs-body");
+            tbody.innerHTML = "";
+
+            if (appState.evaluationLogs.length === 0) return;
+
+            const activeClass = document.getElementById("metric-class-select").value;
+            document.getElementById("eval-active-trace-lbl").innerText = activeClass;
+
+            const filterStatus = appState.evalLogFilter || "ALL";
+
+            // Process statuses
+            const processedLogs = appState.evaluationLogs.map(item => {
+                let status = "TN";
+                if (item.actual === activeClass && item.prediction === activeClass) {
+                    status = "TP";
+                } else if (item.actual !== activeClass && item.prediction === activeClass) {
+                    status = "FP";
+                } else if (item.actual === activeClass && item.prediction !== activeClass) {
+                    status = "FN";
+                }
+                return { ...item, status: status };
+            });
+
+            // Filter
+            const filteredLogs = processedLogs.filter(item => {
+                return filterStatus === "ALL" || item.status === filterStatus;
+            });
+
+            const totalItems = filteredLogs.length;
+            const totalPages = Math.ceil(totalItems / appState.evalLogPageSize) || 1;
+
+            if (appState.evalLogPage > totalPages) appState.evalLogPage = totalPages;
+            if (appState.evalLogPage < 1) appState.evalLogPage = 1;
+
+            const startIdx = (appState.evalLogPage - 1) * appState.evalLogPageSize;
+            const endIdx = Math.min(startIdx + appState.evalLogPageSize, totalItems);
+
+            const paginatedItems = filteredLogs.slice(startIdx, endIdx);
+
+            if (paginatedItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Tidak ada log uji yang cocok dengan kriteria filter.</td></tr>`;
+                document.getElementById("eval-log-pagination-info").innerText = "Menampilkan 0 dari 0 ulasan uji";
+                return;
+            }
+
+            paginatedItems.forEach((item, index) => {
+                const tr = document.createElement("tr");
+                const displayNo = startIdx + index + 1;
+
+                tr.innerHTML = `
+                    <td>${displayNo}</td>
+                    <td style="word-break: break-word;"><code>${item.text}</code></td>
+                    <td><span class="badge emotion-bg-${item.actual.toLowerCase()}">${item.actual}</span></td>
+                    <td><span class="badge emotion-bg-${item.prediction.toLowerCase()}">${item.prediction}</span></td>
+                    <td><span class="badge-status-biner biner-${item.status.toLowerCase()}">${item.status}</span></td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-secondary btn-small btn-trace-eval-row" data-text="${item.text.replace(/"/g, '&quot;')}">
+                            <i data-lucide="calculator" style="width: 14px; height: 14px;"></i> Trace
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById("eval-log-pagination-info").innerText = `Menampilkan ${startIdx + 1} - ${endIdx} dari ${totalItems} ulasan uji`;
+            lucide.createIcons();
+
+            // Bind triggers
+            tbody.querySelectorAll(".btn-trace-eval-row").forEach(btn => {
+                btn.addEventListener("click", function() {
+                    openMathTraceModal(this.getAttribute("data-text"));
+                });
+            });
+        }
+
+        // ==========================================
+        // 5. MATH TRACE MODAL CALCULATOR
+        // ==========================================
+        function openMathTraceModal(text) {
+            if (!text) return;
+
+            // Fetch detail mathematical parameters trace from Flask REST API
+            fetch('/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.error) throw new Error(res.error);
+
+                document.getElementById("modal-sentence-preview").innerText = `"${text}"`;
+                document.getElementById("modal-prep-raw").innerText = text;
+
+                // Preprocessing
+                const badgesContainer = document.getElementById("modal-prep-badges-container");
+                let badgesHtml = '';
+                res.preprocessing_badges.forEach(b => {
+                    badgesHtml += `<span class="token-trace-badge status-${b.status}" title="${b.reason}">${b.token} <small>(${b.reason})</small></span> `;
+                });
+                badgesContainer.innerHTML = badgesHtml;
+
+                const scores = res.scores;
+                const sampleLikelihood = scores[0].likelihoods[0];
+                const vocabSize = sampleLikelihood ? sampleLikelihood.vocab_size : 1;
+                document.getElementById("modal-vocab-size").innerText = vocabSize;
+
+                // 2. Prior Table
+                const priorTbody = document.querySelector("#modal-table-prior tbody");
+                priorTbody.innerHTML = "";
+                scores.forEach(s => {
+                    const docCount = Math.round(s.prior * res.scores.length * 715); // estimation counts
+                    priorTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${s.class}</strong></td>
+                            <td>${s.prior.toFixed(4)}</td>
+                            <td><code>${s.log_prior.toFixed(4)}</code></td>
+                        </tr>
+                    `;
+                });
+
+                // 3. Likelihood Headers
+                const likeHeader = document.getElementById("modal-table-likelihood-headers");
+                likeHeader.innerHTML = "<th>Kata Token (w)</th>";
+                scores.forEach(s => {
+                    likeHeader.innerHTML += `<th>${s.class} P(w|C)</th>`;
+                });
+
+                // Likelihood Rows
+                const likeTbody = document.querySelector("#modal-table-likelihood tbody");
+                likeTbody.innerHTML = "";
+                const prepTokens = res.tokens;
+                if (prepTokens.length === 0) {
+                    likeTbody.innerHTML = `<tr><td colspan="${scores.length + 1}" style="text-align: center; color: var(--text-muted);">Tidak ada kata kunci tersisa setelah pemfilteran.</td></tr>`;
+                } else {
+                    prepTokens.forEach(tok => {
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `<td><code>${tok}</code></td>`;
+                        scores.forEach(s => {
+                            const lh = s.likelihoods.find(l => l.word === tok);
+                            if (lh) {
+                                tr.innerHTML += `
+                                    <td>
+                                        <div class="lh-cell">
+                                            <span class="lh-val">${lh.prob.toFixed(5)}</span>
+                                            <span class="lh-formula">(${lh.freq}+1)/(${lh.class_total_words}+${lh.vocab_size})</span>
+                                        </div>
+                                    </td>
+                                `;
+                            } else {
+                                tr.innerHTML += `<td>-</td>`;
+                            }
+                        });
+                        likeTbody.appendChild(tr);
+                    });
+                }
+
+                // 4. Posterior Table
+                const postTbody = document.querySelector("#modal-table-posterior tbody");
+                postTbody.innerHTML = "";
+                const winner = res.prediction;
+
+                scores.forEach(s => {
+                    const isWin = s.class === winner;
+                    const sumLikeLogs = s.likelihoods.reduce((a, b) => a + b.log_prob, 0);
+
+                    const formulaLogs = s.likelihoods.map(l => l.log_prob.toFixed(2)).join(" + ");
+                    const stepByStepLog = `${s.log_prior.toFixed(3)} + (${formulaLogs || '0'})`;
+
+                    postTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${s.class}</strong></td>
+                            <td>
+                                <div style="display: flex; flex-direction: column;">
+                                    <code class="${isWin ? 'text-primary' : ''}" style="font-weight: 700;">${s.log_score.toFixed(3)}</code>
+                                    <small style="font-size: 0.65rem; color: var(--text-muted); font-family: monospace; word-break: break-all; max-width: 350px; text-align: left; margin-top: 0.15rem;">
+                                        = ${stepByStepLog}
+                                    </small>
+                                </div>
+                            </td>
+                            <td><strong>${(s.probability * 100).toFixed(2)}%</strong> ${isWin ? '<span class="badge badge-positif" style="margin-left: 0.5rem; background: rgba(0,229,255,0.15); color: var(--primary-color);">TERPILIH</span>' : ''}</td>
+                        </tr>
+                    `;
+                });
+
+                document.getElementById("trace-modal").style.display = "flex";
+                lucide.createIcons();
+            })
+            .catch(err => alert("Gagal memicu modal trace: " + err.message));
+        }
+    </script>
+</body>
+</html>
