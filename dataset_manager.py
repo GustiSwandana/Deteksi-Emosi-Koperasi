@@ -139,8 +139,4 @@ def save_dataset(dataset):
     with open(DATASET_PATH, 'w', encoding='utf-8') as f:
         json.dump(dataset, f, ensure_ascii=False, indent=2)
 
-def reset_dataset():
-    """ Menghapus berkas fisik data latih dan memuat ulang data default """
-    if os.path.exists(DATASET_PATH):
-        os.remove(DATASET_PATH)
-    return load_dataset()
+

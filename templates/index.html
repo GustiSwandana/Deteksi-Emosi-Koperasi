@@ -328,9 +328,6 @@
                                         <div id="scrape-status-lbl" style="display: none; font-size: 0.75rem; font-weight: 600; padding: 0.35rem; border-radius: 6px; margin-top: 0.25rem; font-family: 'Inter', sans-serif;"></div>
                                     </div>
 
-                                    <div class="utility-card" style="padding: 0.5rem 0;">
-                                        <button id="btn-reset-dataset" class="btn btn-danger btn-block"><i data-lucide="refresh-cw"></i> Atur Ulang Default (5.005 Data)</button>
-                                    </div>
 
                                     <div class="utility-card" style="padding: 0.5rem 0; display: flex; gap: 0.5rem;">
                                         <button id="btn-trigger-import" class="btn btn-secondary" style="flex: 1;"><i data-lucide="upload"></i> Impor JSON</button>
@@ -1208,21 +1205,6 @@
                 });
             });
 
-            // Reset Dataset Default
-            document.getElementById("btn-reset-dataset").addEventListener("click", () => {
-                const warningMsg = "PERINGATAN SEKURITAS!\n\n" +
-                                   "Aksi ini akan MENGHAPUS SEMUA DATA ulasan nyata Twitter/X yang telah Anda kumpulkan.\n\n" +
-                                   "Sistem akan mengganti seluruh dataset aktif dengan 5.005 data ulasan simulasi/sintetis bawaan pabrik.\n\n" +
-                                   "Apakah Anda yakin ingin melanjutkan?";
-                if (confirm(warningMsg)) {
-                    fetch('/api/dataset/reset', { method: 'POST' })
-                    .then(r => r.json())
-                    .then(res => {
-                        alert("Sukses menyetel ulang ke 5.005 data latih default!");
-                        refreshDatasetView();
-                    });
-                }
-            });
 
             // Impor JSON trigger
             const triggerBtn = document.getElementById("btn-trigger-import");

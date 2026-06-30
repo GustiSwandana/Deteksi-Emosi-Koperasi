@@ -13,8 +13,7 @@ from naive_bayes import (
 )
 from dataset_manager import (
     load_dataset, 
-    save_dataset, 
-    reset_dataset
+    save_dataset
 )
 from data_fetcher import fetch_dataset_from_network
 
@@ -190,13 +189,7 @@ def api_dataset():
         train_model()
         return jsonify({"success": True})
 
-@app.route('/api/dataset/reset', methods=['POST'])
-def api_dataset_reset():
-    """ Mereset data latih ke preset default (5.005 ulasan) """
-    global global_dataset
-    global_dataset = reset_dataset()
-    train_model()
-    return jsonify({"success": True, "total": len(global_dataset)})
+
 
 @app.route('/api/dataset/delete', methods=['POST'])
 def api_dataset_delete():
