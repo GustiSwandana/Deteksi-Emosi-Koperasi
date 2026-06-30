@@ -1210,7 +1210,11 @@
 
             // Reset Dataset Default
             document.getElementById("btn-reset-dataset").addEventListener("click", () => {
-                if (confirm("Apakah Anda yakin ingin menyetel ulang dataset pelatihan ke preset default (5.005 data)? Ulasan kustom yang Anda tambahkan sebelumnya akan dihapus.")) {
+                const warningMsg = "PERINGATAN SEKURITAS!\n\n" +
+                                   "Aksi ini akan MENGHAPUS SEMUA DATA ulasan nyata Twitter/X yang telah Anda kumpulkan.\n\n" +
+                                   "Sistem akan mengganti seluruh dataset aktif dengan 5.005 data ulasan simulasi/sintetis bawaan pabrik.\n\n" +
+                                   "Apakah Anda yakin ingin melanjutkan?";
+                if (confirm(warningMsg)) {
                     fetch('/api/dataset/reset', { method: 'POST' })
                     .then(r => r.json())
                     .then(res => {
