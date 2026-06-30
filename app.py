@@ -1,6 +1,7 @@
 import os
 import math
 import random
+import json
 from flask import Flask, request, jsonify, render_template
 
 # Mengimpor modul-modul pembantu yang telah dipisahkan
@@ -116,7 +117,12 @@ def api_dataset():
 
         filtered = global_dataset
         if search:
-            filtered = [item for item in global_dataset if search in item["text"].lower() or search in item["label"].lower()]
+            filtered = [
+                item for item in global_dataset 
+                if search in item.get("text", "").lower() 
+                or search in item.get("username", "").lower() 
+                or search in item.get("label", "").lower()
+            ]
 
         total_items = len(filtered)
         total_pages = math.ceil(total_items / page_size) or 1
@@ -134,6 +140,7 @@ def api_dataset():
             item = filtered[i]
             paginated_data.append({
                 "index": global_dataset.index(item),
+                "username": item.get("username", "anonim"),
                 "text": item["text"],
                 "label": item["label"],
                 # Tambahkan inline token badges untuk visualisasi tabel
@@ -170,12 +177,15 @@ def api_dataset():
     elif request.method == 'POST':
         # Menambahkan data latih baru kustom
         data = request.get_json() or {}
+        username = data.get("username", "").strip() or "anonim"
+        if username and not username.startswith("@"):
+            username = "@" + username
         text = data.get("text", "").strip()
         label = data.get("label", "").strip()
         if not text or label not in EMOTIONS_METADATA:
             return jsonify({"error": "Format data tidak valid"}), 400
 
-        global_dataset.insert(0, {"text": text, "label": label})
+        global_dataset.insert(0, {"username": username, "text": text, "label": label})
         save_dataset(global_dataset)
         train_model()
         return jsonify({"success": True})
@@ -219,10 +229,28 @@ def api_dataset_import():
         # Bersihkan & Validasi
         allowed = list(EMOTIONS_METADATA.keys())
         valid_items = []
+        user_bases = [
+            "petani", "anggota", "warga", "pengurus", "nasabah", "koperasi", "umkm", "desa",
+            "tani", "sawah", "modal", "dana", "investor", "simpanan", "pinjaman", "shu",
+            "budi", "ani", "siti", "joko", "eko", "rudi", "iwan", "wawan", "sri", "dewi",
+            "agus", "bambang", "hendra", "supri", "mamat", "udin", "asep", "dadang", "cecep"
+        ]
         for p in parsed:
             label_cap = next((c for c in allowed if c.lower() == p["label"].lower().strip()), None)
             if label_cap and p.get("text", "").strip():
-                valid_items.append({"text": p["text"].strip(), "label": label_cap})
+                username = p.get("username", "").strip()
+                if not username:
+                    state = random.getstate()
+                    random.seed(p["text"])
+                    username = f"@{random.choice(user_bases)}_{random.randint(10, 999)}"
+                    random.setstate(state)
+                elif not username.startswith("@"):
+                    username = "@" + username
+                valid_items.append({
+                    "username": username,
+                    "text": p["text"].strip(),
+                    "label": label_cap
+                })
 
         if not valid_items:
             return jsonify({"error": "Tidak ada data ulasan berlabel emosi yang valid"}), 400
@@ -255,6 +283,60 @@ def api_fetch_network():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/scrape', methods=['POST'])
+def api_scrape():
+    """ POST endpoint to run real Twitter/X scraping from browser """
+    import asyncio
+    from scraper_real_twitter import scrape_twitter_real
+    
+    data = request.get_json() or {}
+    query = data.get("query", "").strip()
+    try:
+        count = int(data.get("count", 10))
+    except ValueError:
+        count = 10
+        
+    if not query:
+        return jsonify({"error": "Kata kunci pencarian tidak boleh kosong"}), 400
+        
+    try:
+        # Run async scraper from sync Flask route
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            results = loop.run_until_complete(scrape_twitter_real(query, count))
+        finally:
+            loop.close()
+            
+        if not results:
+            return jsonify({"error": "Tidak ada tweet baru yang ditemukan atau session cookie X Anda tidak valid / limit."}), 400
+            
+        # Merge results into global_dataset
+        global global_dataset
+        existing_texts = {item["text"].strip().lower() for item in global_dataset}
+        
+        new_count = 0
+        for item in results:
+            if item["text"].strip().lower() not in existing_texts:
+                global_dataset.insert(0, item)
+                new_count += 1
+                
+        if new_count > 0:
+            save_dataset(global_dataset)
+            train_model()
+            
+        return jsonify({
+            "success": True,
+            "new_count": new_count,
+            "total_count": len(global_dataset),
+            "results": results
+        })
+    except Exception as e:
+        error_msg = str(e)
+        if "Rate limit" in error_msg or "429" in error_msg:
+            return jsonify({"error": "Batas akses Twitter (Rate Limit 429) tercapai. Silakan tunggu 15 menit atau ganti cookies akun baru."}), 429
+        return jsonify({"error": f"Scraping gagal: {error_msg}"}), 500
 
 @app.route('/api/evaluate', methods=['POST'])
 def api_evaluate():

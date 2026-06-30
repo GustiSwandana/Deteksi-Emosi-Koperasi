@@ -72,10 +72,31 @@ def load_dataset():
     Memuat dataset dari file JSON lokal. 
     Jika tidak ada file, sistem men-generate 5.005 data latih seimbang secara programmatis.
     """
+    user_bases = [
+        "petani", "anggota", "warga", "pengurus", "nasabah", "koperasi", "umkm", "desa",
+        "tani", "sawah", "modal", "dana", "investor", "simpanan", "pinjaman", "shu",
+        "budi", "ani", "siti", "joko", "eko", "rudi", "iwan", "wawan", "sri", "dewi",
+        "agus", "bambang", "hendra", "supri", "mamat", "udin", "asep", "dadang", "cecep"
+    ]
+
     if os.path.exists(DATASET_PATH):
         try:
             with open(DATASET_PATH, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                dataset = json.load(f)
+                
+            # Fallback jika ada data yang belum memiliki username
+            modified = False
+            for idx, item in enumerate(dataset):
+                if "username" not in item:
+                    state = random.getstate()
+                    random.seed(item.get("text", str(idx)))
+                    item["username"] = f"@{random.choice(user_bases)}_{random.randint(10, 999)}"
+                    random.setstate(state)
+                    modified = True
+            
+            if modified:
+                save_dataset(dataset)
+            return dataset
         except Exception as e:
             print(f"Gagal membaca file dataset, memuat default: {e}")
             
@@ -99,7 +120,13 @@ def load_dataset():
             unique_texts.add(sentence)
             
         for txt in unique_texts:
+            state = random.getstate()
+            random.seed(txt)
+            username = f"@{random.choice(user_bases)}_{random.randint(10, 999)}"
+            random.setstate(state)
+            
             dataset.append({
+                "username": username,
                 "text": txt,
                 "label": cat
             })

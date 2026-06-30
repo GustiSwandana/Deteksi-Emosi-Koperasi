@@ -277,6 +277,10 @@
                             <div class="card-body">
                                 <form id="form-add-dataset">
                                     <div class="form-group">
+                                        <label for="dataset-username-input">Username:</label>
+                                        <input type="text" id="dataset-username-input" placeholder="Contoh: @petani_modern" required>
+                                    </div>
+                                    <div class="form-group">
                                         <label for="dataset-text-input">Kalimat Ulasan:</label>
                                         <input type="text" id="dataset-text-input" placeholder="Masukkan ulasan di sini..." required>
                                     </div>
@@ -308,14 +312,20 @@
                                 <div class="utilities-grid">
                                     <div class="utility-card" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
                                         <div class="utility-info">
-                                            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 700;">Ambil Data Real (Sosial Media)</h4>
-                                            <p style="margin: 0.15rem 0 0 0; font-size: 0.75rem; color: var(--text-muted);">Masukkan URL endpoint data latih real untuk diunduh asinkron.</p>
+                                            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 0.25rem;">
+                                                <i data-lucide="twitter" style="width: 16px; height: 16px; color: #1DA1F2;"></i>
+                                                Scraping Twitter/X Real-time
+                                            </h4>
+                                            <p style="margin: 0.15rem 0 0 0; font-size: 0.75rem; color: var(--text-muted);">Tarik opini asli dari Twitter/X dan klasifikasikan emosinya secara otomatis.</p>
                                         </div>
-                                        <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
-                                            <input type="text" id="fetch-dataset-url" value="http://127.0.0.1:5000/static/dataset_sosmed.json" style="flex-grow: 1; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.4rem; font-size: 0.75rem; background: rgba(0,0,0,0.02); color: var(--text-primary); outline: none;">
-                                            <button id="btn-fetch-dataset" class="btn btn-primary btn-small"><i data-lucide="cloud-download"></i> Tarik</button>
+                                        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem;">
+                                            <div style="display: flex; gap: 0.5rem;">
+                                                <input type="text" id="scrape-twitter-query" placeholder="Kata kunci (contoh: koperasi)" style="flex-grow: 2; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.4rem; font-size: 0.75rem; background: rgba(0,0,0,0.02); color: var(--text-primary); outline: none;">
+                                                <input type="number" id="scrape-twitter-count" min="5" max="100" value="20" placeholder="Jumlah" style="width: 70px; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.4rem; font-size: 0.75rem; background: rgba(0,0,0,0.02); color: var(--text-primary); outline: none;">
+                                            </div>
+                                            <button id="btn-scrape-twitter" class="btn btn-primary btn-block" style="justify-content: center;"><i data-lucide="sparkles"></i> Mulai Scraping Twitter/X</button>
                                         </div>
-                                        <div id="fetch-status-lbl" style="display: none; font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0;"></div>
+                                        <div id="scrape-status-lbl" style="display: none; font-size: 0.75rem; font-weight: 600; padding: 0.35rem; border-radius: 6px; margin-top: 0.25rem; font-family: 'Inter', sans-serif;"></div>
                                     </div>
 
                                     <div class="utility-card" style="padding: 0.5rem 0;">
@@ -420,7 +430,8 @@
                                     <thead>
                                         <tr>
                                             <th>No</th>
-                                            <th style="width: 60%;">Teks Opini & Preprocessing</th>
+                                            <th>Username</th>
+                                            <th style="width: 50%;">Teks Opini & Preprocessing</th>
                                             <th>Kelas Emosi</th>
                                             <th style="text-align: center;">Aksi</th>
                                         </tr>
@@ -1176,6 +1187,7 @@
             // Form Submit Add
             document.getElementById("form-add-dataset").addEventListener("submit", (e) => {
                 e.preventDefault();
+                const username = document.getElementById("dataset-username-input").value.trim();
                 const text = document.getElementById("dataset-text-input").value.trim();
                 const label = document.getElementById("dataset-label-select").value;
 
@@ -1184,11 +1196,12 @@
                 fetch('/api/dataset', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text, label: label })
+                    body: JSON.stringify({ username: username, text: text, label: label })
                 })
                 .then(r => r.json())
                 .then(res => {
                     alert("Sukses menambahkan data latih kustom!");
+                    document.getElementById("dataset-username-input").value = "";
                     document.getElementById("dataset-text-input").value = "";
                     document.getElementById("dataset-label-select").value = "";
                     refreshDatasetView();
@@ -1232,39 +1245,56 @@
                 .finally(() => fileInput.value = "");
             });
 
-            // Fetch Real-data from Internet
-            const btnFetch = document.getElementById("btn-fetch-dataset");
-            const fetchUrlInput = document.getElementById("fetch-dataset-url");
-            const fetchStatus = document.getElementById("fetch-status-lbl");
+            // Scraping Twitter/X Real-time
+            const btnScrape = document.getElementById("btn-scrape-twitter");
+            const scrapeQueryInput = document.getElementById("scrape-twitter-query");
+            const scrapeCountInput = document.getElementById("scrape-twitter-count");
+            const scrapeStatus = document.getElementById("scrape-status-lbl");
 
-            btnFetch.addEventListener("click", () => {
-                const url = fetchUrlInput.value.trim();
-                if (!url) return;
+            btnScrape.addEventListener("click", () => {
+                const query = scrapeQueryInput.value.trim();
+                const count = parseInt(scrapeCountInput.value) || 20;
+                
+                if (!query) {
+                    alert("Silakan masukkan kata kunci pencarian terlebih dahulu!");
+                    return;
+                }
 
-                btnFetch.disabled = true;
-                fetchStatus.style.display = "block";
-                fetchStatus.style.color = "var(--primary-color)";
-                fetchStatus.innerText = "⏳ Sedang mengunduh berkas dari jaringan internet...";
+                btnScrape.disabled = true;
+                scrapeStatus.style.display = "block";
+                scrapeStatus.style.background = "rgba(29, 161, 242, 0.1)";
+                scrapeStatus.style.color = "#1d9bf0";
+                scrapeStatus.style.border = "1px solid rgba(29, 161, 242, 0.3)";
+                scrapeStatus.innerText = "⏳ Sedang menghubungi Twitter/X dan mengambil data... (Mohon tunggu beberapa detik, skrip berjalan secara asinkron)";
 
-                fetch('/api/fetch_network', {
+                fetch('/api/scrape', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
+                    body: JSON.stringify({ query: query, count: count })
                 })
-                .then(r => r.json())
+                .then(r => {
+                    if (r.status === 429) {
+                        throw new Error("Batas akses Twitter (Rate Limit 429) tercapai. Silakan tunggu 15 menit sebelum mencoba kembali, atau perbarui cookie X Anda di twitter_cookies.json.");
+                    }
+                    return r.json();
+                })
                 .then(res => {
                     if (res.error) throw new Error(res.error);
-                    fetchStatus.style.color = "#10b981";
-                    fetchStatus.innerText = `✔️ Sukses melatih ulang model dengan ${res.total} data dari internet!`;
-                    alert(`Penarikan sukses! Model dilatih ulang dengan ${res.total} ulasan riil.`);
+                    scrapeStatus.style.background = "rgba(16, 185, 129, 0.1)";
+                    scrapeStatus.style.color = "#10b981";
+                    scrapeStatus.style.border = "1px solid rgba(16, 185, 129, 0.3)";
+                    scrapeStatus.innerText = `✔️ Sukses menambahkan ${res.new_count} ulasan baru unik dari Twitter/X!`;
+                    alert(`Scraping Sukses!\nBerhasil mengambil ${res.results.length} tweet.\nMenambahkan ${res.new_count} ulasan baru yang unik ke dalam dataset.`);
                     refreshDatasetView();
                 })
                 .catch(err => {
-                    fetchStatus.style.color = "#ef4444";
-                    fetchStatus.innerText = `❌ Kesalahan: ${err.message}`;
-                    alert("Koneksi gagal: " + err.message);
+                    scrapeStatus.style.background = "rgba(239, 68, 68, 0.1)";
+                    scrapeStatus.style.color = "#ef4444";
+                    scrapeStatus.style.border = "1px solid rgba(239, 68, 68, 0.3)";
+                    scrapeStatus.innerText = `❌ Gagal: ${err.message}`;
+                    alert("Scraping gagal: " + err.message);
                 })
-                .finally(() => btnFetch.disabled = false);
+                .finally(() => btnScrape.disabled = false);
             });
 
             // Vocab Class selector change
@@ -1315,7 +1345,7 @@
                 tbody.innerHTML = "";
 
                 if (res.data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Tidak ada data yang cocok dengan kriteria pencarian.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Tidak ada data yang cocok dengan kriteria pencarian.</td></tr>`;
                 } else {
                     res.data.forEach((item) => {
                         const displayNo = (res.page - 1) * appState.datasetPageSize + res.data.indexOf(item) + 1;
@@ -1330,6 +1360,7 @@
 
                         tr.innerHTML = `
                             <td>${displayNo}</td>
+                            <td><span class="user-badge" style="font-weight: 600; color: var(--primary-color); font-size: 0.85rem; font-family: monospace;">${item.username}</span></td>
                             <td style="word-break: break-word;">
                                 <div style="font-weight: 500;">${item.text}</div>
                                 ${badgesHtml}

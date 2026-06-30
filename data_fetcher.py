@@ -19,16 +19,33 @@ def fetch_dataset_from_network(url, allowed_labels):
         if not isinstance(parsed, list):
             raise ValueError("Struktur data harus berupa JSON Array berkas opini.")
             
+        import random
+        user_bases = [
+            "petani", "anggota", "warga", "pengurus", "nasabah", "koperasi", "umkm", "desa",
+            "tani", "sawah", "modal", "dana", "investor", "simpanan", "pinjaman", "shu",
+            "budi", "ani", "siti", "joko", "eko", "rudi", "iwan", "wawan", "sri", "dewi",
+            "agus", "bambang", "hendra", "supri", "mamat", "udin", "asep", "dadang", "cecep"
+        ]
+
         valid_items = []
         for item in parsed:
             txt = item.get("text", "").strip()
             lbl = item.get("label", "").strip()
+            username = item.get("username", "").strip()
+            if not username:
+                state = random.getstate()
+                random.seed(txt)
+                username = f"@{random.choice(user_bases)}_{random.randint(10, 999)}"
+                random.setstate(state)
+            elif not username.startswith("@"):
+                username = "@" + username
             
             # Cari label emosi yang cocok (case-insensitive) dengan EMOTIONS_METADATA keys
             label_cap = next((c for c in allowed_labels if c.lower() == lbl.lower()), None)
             
             if label_cap and txt:
                 valid_items.append({
+                    "username": username,
                     "text": txt,
                     "label": label_cap
                 })

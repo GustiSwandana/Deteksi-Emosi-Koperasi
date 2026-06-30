@@ -10,3 +10,6 @@ ENV/
 .idea/
 .gemini/
 *.log
+twitter_cookies.json
+twitter_auth.json
+scraped_tweets.json
